@@ -1,188 +1,131 @@
 <script setup>
 import { ref } from 'vue'
 
-// =========================
-// STUDENT DATA
-// =========================
+const students = ref([])
 
-const students = ref(
-  JSON.parse(localStorage.getItem('students')) || []
-)
+const showForm = ref(false)
 
-// =========================
-// FORM DATA
-// =========================
+const editingStudent = ref(null)
 
-const studentId = ref('')
-const name = ref('')
-const course = ref('')
-const yearLevel = ref('')
-const email = ref('')
-
-// Used to determine if we are editing
-const editingId = ref(null)
+const student = ref({
+  studentId: '',
+  name: '',
+  course: '',
+  year: '',
+  email: ''
+})
 
 
-// =========================
-// SAVE TO LOCAL STORAGE
-// =========================
+// ====================
+// ADD BUTTON
+// ====================
 
-function saveToStorage() {
-  localStorage.setItem(
-    'students',
-    JSON.stringify(students.value)
-  )
+function openAddForm() {
+  editingStudent.value = null
+
+  student.value = {
+    studentId: '',
+    name: '',
+    course: '',
+    year: '',
+    email: ''
+  }
+
+  showForm.value = true
 }
 
 
-// =========================
-// CREATE - ADD STUDENT
-// =========================
+// ====================
+// SAVE STUDENT
+// ====================
 
-function addStudent() {
+function saveStudent() {
 
-  // Check if fields are empty
   if (
-    !studentId.value ||
-    !name.value ||
-    !course.value ||
-    !yearLevel.value ||
-    !email.value
+    !student.value.studentId ||
+    !student.value.name ||
+    !student.value.course ||
+    !student.value.year ||
+    !student.value.email
   ) {
     alert('Please fill in all fields.')
     return
   }
 
-  const newStudent = {
-    id: Date.now(),
-    studentId: studentId.value,
-    name: name.value,
-    course: course.value,
-    yearLevel: yearLevel.value,
-    email: email.value
+  // ADD
+  if (editingStudent.value === null) {
+
+    students.value.push({
+      id: Date.now(),
+      ...student.value
+    })
+
+    alert('Student added!')
+
   }
 
-  // Add student to array
-  students.value.push(newStudent)
+  // EDIT / UPDATE
+  else {
 
-  // Save data
-  saveToStorage()
+    const index = students.value.findIndex(
+      s => s.id === editingStudent.value
+    )
 
-  // Clear form
-  clearForm()
+    students.value[index] = {
+      id: editingStudent.value,
+      ...student.value
+    }
 
-  alert('Student added successfully!')
-}
-
-
-// =========================
-// UPDATE - EDIT STUDENT
-// =========================
-
-function editStudent(student) {
-
-  // Store the ID of the student being edited
-  editingId.value = student.id
-
-  // Put existing information into the form
-  studentId.value = student.studentId
-  name.value = student.name
-  course.value = student.course
-  yearLevel.value = student.yearLevel
-  email.value = student.email
-}
-
-
-// =========================
-// UPDATE - SAVE CHANGES
-// =========================
-
-function updateStudent() {
-
-  const student = students.value.find(
-    student => student.id === editingId.value
-  )
-
-  if (!student) {
-    return
+    alert('Student updated!')
   }
 
-  // Update student information
-  student.studentId = studentId.value
-  student.name = name.value
-  student.course = course.value
-  student.yearLevel = yearLevel.value
-  student.email = email.value
-
-  // Save changes
-  saveToStorage()
-
-  // Clear form
-  clearForm()
-
-  alert('Student updated successfully!')
+  showForm.value = false
 }
 
 
-// =========================
-// DELETE - DELETE STUDENT
-// =========================
+// ====================
+// EDIT BUTTON
+// ====================
+
+function editStudent(s) {
+
+  editingStudent.value = s.id
+
+  student.value = {
+    studentId: s.studentId,
+    name: s.name,
+    course: s.course,
+    year: s.year,
+    email: s.email
+  }
+
+  showForm.value = true
+}
+
+
+// ====================
+// DELETE BUTTON
+// ====================
 
 function deleteStudent(id) {
 
-  const confirmDelete = confirm(
-    'Are you sure you want to delete this student?'
-  )
+  if (confirm('Delete this student?')) {
 
-  if (!confirmDelete) {
-    return
+    students.value = students.value.filter(
+      s => s.id !== id
+    )
+
+    alert('Student deleted!')
   }
-
-  // Remove student from array
-  students.value = students.value.filter(
-    student => student.id !== id
-  )
-
-  // Save changes
-  saveToStorage()
-
-  alert('Student deleted successfully!')
 }
 
 
-// =========================
-// CLEAR FORM
-// =========================
+// ====================
+// CANCEL BUTTON
+// ====================
 
-function clearForm() {
-
-  studentId.value = ''
-  name.value = ''
-  course.value = ''
-  yearLevel.value = ''
-  email.value = ''
-
-  editingId.value = null
-}
-
-
-// =========================
-// SUBMIT FORM
-// =========================
-
-function submitForm() {
-
-  if (editingId.value === null) {
-
-    // CREATE
-    addStudent()
-
-  } else {
-
-    // UPDATE
-    updateStudent()
-
-  }
+function cancelForm() {
+  showForm.value = false
 }
 </script>
 
@@ -194,159 +137,106 @@ function submitForm() {
     <h1>Student Management System</h1>
 
 
-    <!-- ========================= -->
-    <!-- ADD / EDIT FORM -->
-    <!-- ========================= -->
+    <!-- ===================== -->
+    <!-- ADD BUTTON -->
+    <!-- ===================== -->
 
-    <div class="form-card">
+    <button
+      class="add-button"
+      @click="openAddForm"
+    >
+      + Add Student
+    </button>
+
+
+    <!-- ===================== -->
+    <!-- ADD / EDIT FORM -->
+    <!-- ===================== -->
+
+    <div
+      v-if="showForm"
+      class="form-box"
+    >
 
       <h2>
-        {{ editingId === null
-          ? 'Add Student'
-          : 'Edit Student'
+        {{
+          editingStudent === null
+            ? 'Add Student'
+            : 'Edit Student'
         }}
       </h2>
 
-      <form @submit.prevent="submitForm">
+      <input
+        v-model="student.studentId"
+        placeholder="Student ID"
+      >
 
-        <div class="form-group">
+      <input
+        v-model="student.name"
+        placeholder="Student Name"
+      >
 
-          <label>Student ID</label>
+      <input
+        v-model="student.course"
+        placeholder="Course"
+      >
 
-          <input
-            v-model="studentId"
-            type="text"
-            placeholder="Example: 2026-001"
-          >
+      <input
+        v-model="student.year"
+        placeholder="Year Level"
+      >
 
-        </div>
-
-
-        <div class="form-group">
-
-          <label>Name</label>
-
-          <input
-            v-model="name"
-            type="text"
-            placeholder="Enter student name"
-          >
-
-        </div>
+      <input
+        v-model="student.email"
+        placeholder="Email"
+      >
 
 
-        <div class="form-group">
+      <div class="form-buttons">
 
-          <label>Course</label>
-
-          <input
-            v-model="course"
-            type="text"
-            placeholder="Example: BSIT"
-          >
-
-        </div>
-
-
-        <div class="form-group">
-
-          <label>Year Level</label>
-
-          <select v-model="yearLevel">
-
-            <option value="">
-              Select Year Level
-            </option>
-
-            <option value="1st Year">
-              1st Year
-            </option>
-
-            <option value="2nd Year">
-              2nd Year
-            </option>
-
-            <option value="3rd Year">
-              3rd Year
-            </option>
-
-            <option value="4th Year">
-              4th Year
-            </option>
-
-          </select>
-
-        </div>
-
-
-        <div class="form-group">
-
-          <label>Email</label>
-
-          <input
-            v-model="email"
-            type="email"
-            placeholder="student@email.com"
-          >
-
-        </div>
-
-
-        <!-- BUTTONS -->
-
-        <div class="form-buttons">
-
-          <button
-            type="submit"
-            class="btn btn-primary"
-          >
-
-            {{ editingId === null
+        <button
+          class="save-button"
+          @click="saveStudent"
+        >
+          {{
+            editingStudent === null
               ? 'Add Student'
               : 'Update Student'
-            }}
+          }}
+        </button>
 
-          </button>
+        <button
+          class="cancel-button"
+          @click="cancelForm"
+        >
+          Cancel
+        </button>
 
-
-          <button
-            v-if="editingId !== null"
-            type="button"
-            class="btn btn-secondary"
-            @click="clearForm"
-          >
-            Cancel
-          </button>
-
-        </div>
-
-      </form>
+      </div>
 
     </div>
 
 
-    <!-- ========================= -->
+    <!-- ===================== -->
     <!-- STUDENT TABLE -->
-    <!-- ========================= -->
+    <!-- ===================== -->
 
-    <div class="table-card">
+    <div class="table-box">
 
-      <h2>Student List</h2>
+      <h2>Students</h2>
 
       <table>
 
         <thead>
 
           <tr>
-
-            <th>#</th>
+            <th>ID</th>
             <th>Student ID</th>
             <th>Name</th>
             <th>Course</th>
             <th>Year</th>
             <th>Email</th>
             <th>Actions</th>
-
           </tr>
 
         </thead>
@@ -354,57 +244,52 @@ function submitForm() {
 
         <tbody>
 
-          <!-- Display students -->
-
           <tr
-            v-for="(student, index) in students"
-            :key="student.id"
+            v-for="s in students"
+            :key="s.id"
           >
 
             <td>
-              {{ index + 1 }}
+              {{ s.id }}
             </td>
 
             <td>
-              {{ student.studentId }}
+              {{ s.studentId }}
             </td>
 
             <td>
-              {{ student.name }}
+              {{ s.name }}
             </td>
 
             <td>
-              {{ student.course }}
+              {{ s.course }}
             </td>
 
             <td>
-              {{ student.yearLevel }}
+              {{ s.year }}
             </td>
 
             <td>
-              {{ student.email }}
+              {{ s.email }}
             </td>
 
 
-            <!-- ACTION BUTTONS -->
+            <!-- ===================== -->
+            <!-- EDIT & DELETE BUTTONS -->
+            <!-- ===================== -->
 
             <td class="actions">
 
-              <!-- EDIT -->
-
               <button
-                class="btn btn-edit"
-                @click="editStudent(student)"
+                class="edit-button"
+                @click="editStudent(s)"
               >
                 Edit
               </button>
 
-
-              <!-- DELETE -->
-
               <button
-                class="btn btn-delete"
-                @click="deleteStudent(student.id)"
+                class="delete-button"
+                @click="deleteStudent(s.id)"
               >
                 Delete
               </button>
@@ -414,15 +299,13 @@ function submitForm() {
           </tr>
 
 
-          <!-- No students -->
-
           <tr v-if="students.length === 0">
 
             <td
               colspan="7"
-              class="no-data"
+              class="empty"
             >
-              No students found.
+              No students yet.
             </td>
 
           </tr>
